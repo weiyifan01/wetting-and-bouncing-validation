@@ -514,7 +514,7 @@ class XSPHCorrection(Equation):
 
 
 def create_particles(fdx, fluid_column_R, V0, h, dim, rho0, rhoC0):
-    m = (fdx ** dim) * rho0  # (kg) 单个粒子的质量 厚度为1
+    m = (fdx ** dim) * rho0  # (kg)  
 
     xf, yf, zf = np.mgrid[-fluid_column_R:fluid_column_R:fdx,
                  - fluid_column_R:fluid_column_R:fdx,
@@ -621,44 +621,44 @@ class Drop(Application):
         super(Drop, self).__init__()
 
     def consume_user_options(self):
-        self.fdx = 0.06  # (mm) 平均粒子间距 !!!
-        self.Ratt = 0.24  # 支集半径
+        self.fdx = 0.06  # (mm) average particle spacing
+        self.Ratt = 0.24  # support radius
 
         self.fluid_column_R = 1.1  # (mm)
-        self.rho0 = 0.001  # (g/mm^3) 流体密度
-        self.rhoC0 = 0.001  # (g/mm^3) 铜密度
+        self.rho0 = 0.001  # (g/mm^3) fluid density
+        self.rhoC0 = 0.001  # (g/mm^3) The density of the base layer
         self.V0 = np.sqrt(self.We * 0.0000720 / (self.rho0 * self.fluid_column_R))  # mm/ms
         self.c0 = 10.0 * (1 + self.V0)
 
-        # 2*self.Parameter-self.ParameterB-1 =cos theta
+        # 2*self.Parameter - self.ParameterB - 1 = cos(theta)
 
         M1CS = 31 * self.Ratt / 70
         A = 8 * 0.0000720 / M1CS
         self.theta = A * 1
-        self.alphaF = A*self.ParameterA
+        self.alphaF = A * self.ParameterA
         # M1ns = 3 * (self.Ratt / 1.0) / 8
         # B = 8 * 0.0000720 / M1ns
         M1wq = 5 * (self.Ratt / 1.5) / 12
         B = 8 * 0.0000720 / M1wq
-        self.betaF = B*self.ParameterB
+        self.betaF = B * self.ParameterB
 
-        self.tf = 0.01  # (ms)
+        self.tf = 1  # (ms)
         self.p0 = 0
         self.dim = 3
-        self.mu = 0.000001  # (10^-6 g/(ms.mm) ~ 1cP)dynamic viscosity
-        self.alpha = 0.3  # produces a shear and bulk viscosity
+        self.mu = 0.000001  # (10^-6 g/(ms.mm) ~ 1 cP) dynamic viscosity
+        self.alpha = 0.3  # produces shear and bulk viscosity
         self.beta = 0.0  # used to handle high Mach number shocks
-        g = 0.00981  # (mm/ms^2) 重力加速度
+        g = 0.00981  # (mm/ms^2) gravitational acceleration
         if self.dim == 2:
             self.gy = -g
             self.gz = 0
         else:
             self.gy = 0
             self.gz = -g
-        self.gamma = 7  # 压缩系数，越大越好
-        self.dt = 0.04 * self.Ratt / self.c0  # (s) 指定步长 !!!
+        self.gamma = 7  # compressibility coefficient; larger is better
+        self.dt = 0.04 * self.Ratt / self.c0  # (s) prescribed time step
         print("self.ParameterA = %2.2f,  Ratt= %2.2f,  fdx= %4.4f" % (
-            self.ParameterA,  self.Ratt, self.fdx))
+            self.ParameterA, self.Ratt, self.fdx))
 
     def create_solver(self):
         kernel = TwoKernel(dim=self.dim)
@@ -680,16 +680,17 @@ class Drop(Application):
                 equations=[
                     ContinuityEquationF(dest='fluid', sources=['fluid', 'boundary', 'boundaryq']),
 
-                    # 负压力（不存在于固液之间）
+                    # Negative pressure (not present in fluid-solid interaction)
                     MomentumEquation_N(dest='fluid', sources=['fluid'], theta=self.theta),
-                    # 附着力
+                    # Adhesion force
                     Adhesion(dest='fluid', sources=['boundaryq'], alphaF=self.alphaF, betaF=0),
-                    # Adhesion(dest='fluid', sources=['boundary',], alphaF=0, betaF=self.betaF),
+                    # Adhesion(dest='fluid', sources=['boundary'], alphaF=0, betaF=self.betaF),
 
-                    # 压力
-                    ME_Pressure(dest='fluid', sources=['fluid', 'boundary', 'boundaryq'], c0=self.c0, alpha=self.alpha, beta=self.beta, tensile_correction=False),
-                      # 正压力
-                    ME_ViscosityGravity(dest='fluid', sources=['fluid'], mu=self.mu,  gx=0, gy=self.gy, gz=self.gz),
+                    # Pressure
+                    ME_Pressure(dest='fluid', sources=['fluid', 'boundary', 'boundaryq'],
+                                c0=self.c0, alpha=self.alpha, beta=self.beta, tensile_correction=False),
+                    # Positive pressure
+                    ME_ViscosityGravity(dest='fluid', sources=['fluid'], mu=self.mu, gx=0, gy=self.gy, gz=self.gz),
 
                     XSPHCorrection(dest='fluid', sources=['fluid']),
                 ]
@@ -711,12 +712,14 @@ class Drop(Application):
         import os
 
         file_path = self.output_dir + '/' + self.fname + '.txt'
-        # # 打开文件，以追加模式写入
+        # Open the file in write mode
         with open(file_path, 'w') as file:
             file.write(
-                  "ParameterA = %3.3f, fdx= %3.3f, Ratt= %3.3f" % (
+                "ParameterA = %3.3f, fdx= %3.3f, Ratt= %3.3f" % (
                     self.ParameterA, self.fdx, self.Ratt) + "\n"
-                + "dt = %g, fluid_column_R = %2.2f, V = %3.3f" % (self.dt, self.fluid_column_R, self.V0) + "\n")
+                + "dt = %g, fluid_column_R = %2.2f, V = %3.3f" % (
+                    self.dt, self.fluid_column_R, self.V0) + "\n"
+            )
 
     def customize_output(self):
         self._mayavi_config('''
@@ -730,10 +733,10 @@ class Drop(Application):
 
     def create_particles(self):
         V0 = np.sqrt(self.V0 * self.V0 + 2 * self.gz * 40 * self.fdx)
-        return create_particles(self.fdx, self.fluid_column_R, V0, self.Ratt/1.5, self.dim, self.rho0, self.rhoC0)
+        return create_particles(self.fdx, self.fluid_column_R, V0, self.Ratt / 1.5, self.dim, self.rho0, self.rhoC0)
 
 
-if __name__ == '__main__':  # 判断当前脚本是否被直接运行
+if __name__ == '__main__':  # Check whether the script is executed directly
     app = Drop(32.8, 0.966, 0)
     app.run()
     app.post_process(app.info_filename)

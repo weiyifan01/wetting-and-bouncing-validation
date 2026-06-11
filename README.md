@@ -24,15 +24,33 @@ These two videos compare physical experiments and numerical simulations of dropl
 
 ### Codes
 
-- `PythonCode_for_ContactAngle_pi_over_2.py`  
+- `contact_angle_pi_over_2.py`  
   Code for simulating the static contact angle of a droplet.
 
-- `PythonCode_for_Rebound_on_PWsurface.py`  
+- `rebound_on_pw_surface.py`  
   Code for simulating droplet rebound on a partially wetting (PW) surface.
 
 ## Requirements
 
-To run the Python codes, please make sure that the `pysph` library is installed in your Python environment.
+To run the Python codes, make sure that the `pysph` library is installed in your Python environment. The files should be placed in the `examples` directory of the `pysph` package. Then, you can then launch the simulation with: 
+
+```python
+OMP_NUM_THREADS=40 pysph run contact_angle_pi_over_2 --tf=40 --openmp
+```
+
+Alternatively, you may run the script directly in a more robust way:
+
+```python
+python run contact_angle_pi_over_2.py
+```
+
+After the simulation is completed, the output can be visualized with `pysph view`. For example:    
+
+```
+pysph view ./contact_angle_pi_over_2_output/
+```
+
+
 
 ## Purpose
 
