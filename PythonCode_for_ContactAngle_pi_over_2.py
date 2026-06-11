@@ -758,10 +758,9 @@ class Drop(Application):
 
 
 if __name__ == '__main__':  # 判断当前脚本是否被直接运行
-    # alpha 0   0.066  0.25  0.5  0.75  0.933    1
-    # beta  0   0      0     0    0     0        0
+    # alpha 0   0.066  0.25  0.5  0.75  0.933    1 
     # theta pi  5pi/6  2pi/3 pi/2 pi/3  pi/6     0
 
-    app = Drop(0.5)  # A=B theta=pi 基准 不准
+    app = Drop(0.5)  
     app.run()
     app.post_process(app.info_filename)
